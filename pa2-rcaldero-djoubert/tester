@@ -1,0 +1,103 @@
+#!/bin/bash
+hw=${PWD##*/}
+
+writeusage () {
+    echo
+    echo "tester - UCSD CSE105"
+    echo
+    echo "Usage: tester [to_compress] [compressed] [uncompress_to]"
+    echo
+    echo "Be sure to run this in a \"pa2\" directory."
+    echo
+}
+
+# If the user doesn't know how to use this
+if [[ "$#" < 3 ]]; then
+    writeusage
+    exit 1
+fi
+
+
+# First arg is the driver
+to_compress="$1"
+shift
+compressed="$1"
+shift
+uncompress_to="$1"
+shift
+
+# Make your file
+make
+
+# Report when make fails
+if [ "$?" -ne 0 ];then
+    echo
+    echo
+    echo "      **********************************************"
+    echo "      *        Make failed!! Exiting script.       *"
+    echo "      **********************************************"
+    echo "                    ~ Sorry Dude :( ~"
+    echo
+    echo
+    #Quit script
+    exit 1
+fi
+
+# Run compression
+echo "Compressing $to_compress to $compressed ..."
+./compress $to_compress $compressed > /dev/null
+
+# Error returned from compression
+if [ "$?" -ne 0 ];then
+    echo
+    echo "      **********************************************"
+    echo "      *        Error report from compress!!        *"
+    echo "      **********************************************"
+    echo "                 ~ Rub some GDB on that ~"
+    echo
+    exit 1
+fi
+
+# Check file sizes
+UNCOMPRESSED=$(stat -c%s "$to_compress")
+COMPRESSED=$(stat -c%s "$compressed")
+
+# Output compression size
+echo "Compression is done. "
+echo "Uncompressed size: $UNCOMPRESSED"
+echo "Compressed size: $COMPRESSED"
+# Uncompress files
+echo "Uncompressing $compressed to $uncompress_to ..."
+./uncompress $compressed $uncompress_to > /dev/null
+
+# Error returned from uncompression
+if [ "$?" -ne 0 ];then
+    echo
+    echo "      **********************************************"
+    echo "      *        Error report from uncompress!!       *"
+    echo "      **********************************************"
+    echo "                 ~ Rub some GDB on that ~"
+    echo
+    exit 1
+fi
+
+# Check if files match
+cmp $to_compress $uncompress_to
+
+if [ "$?" -ne 0 ];then
+    echo
+    echo "      **********************************************"
+    echo "      *           Oops, cmp test failed!           *"
+    echo "      **********************************************"
+    echo "     ~ Don't worry it's your personality that counts ~"
+    echo
+    echo
+    echo "Would you like to see the diff file? [y/n]"
+    read continueKey
+    if [ "${continueKey}" = "y" ]; then
+        vimdiff $to_compress $uncompress_to
+    fi
+fi
+
+echo "Success!!"
+exit 0
